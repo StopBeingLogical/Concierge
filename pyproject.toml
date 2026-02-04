@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bit"
+version = "0.1.0"
+description = "Personal AI orchestration system (Concierge control plane)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [{name = "User"}]
+
+dependencies = [
+    "pydantic>=2.0",
+    "typer>=0.9",
+    "rich>=13.0",
+    "requests>=2.31",
+    "toml>=0.10",
+    "textual>=0.40",
+]
+
+[project.scripts]
+bit = "bit.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bit"]
