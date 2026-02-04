@@ -1,0 +1,59 @@
+package_id: test.echo
+version: 1.0.0
+title: Echo Test Package
+description: Simple test package that echoes input to output. Used for testing the orchestration
+  framework.
+intent:
+  category: test
+  verbs:
+    - echo
+    - test
+  entities:
+    - message
+  confidence_threshold: 0.5
+  match_rules:
+    - must contain verb 'echo'
+input_contract:
+  fields:
+    - name: message
+      type: string
+      description: Message to echo
+      required: true
+output_contract:
+  fields:
+    - name: output
+      type: string
+      description: Echoed message with timestamp
+      required: true
+pipeline:
+  steps:
+    - step_id: step_1_echo
+      worker:
+        worker_id: echo_worker
+        version: 1.0.0
+        status: available
+      inputs:
+        - message
+      outputs:
+        - output
+      params:
+        timestamp: true
+approval:
+  required: false
+  conditions: []
+verification:
+  required: false
+  rules: []
+failure_handling:
+  modes: []
+resources:
+  cpu_cores: 1
+  gpu_required: false
+  memory_mb: 128
+  disk_mb: 100
+metadata:
+  created_at: '2026-02-04T00:00:00Z'
+  author: system
+  tags:
+    - test
+    - basic

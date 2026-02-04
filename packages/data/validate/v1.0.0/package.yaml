@@ -1,0 +1,134 @@
+package_id: data.validate
+version: 1.0.0
+title: Data Validation
+description: Validate data files against schemas and quality rules. Generates detailed
+  reports on data quality, completeness, and integrity.
+intent:
+  category: data
+  verbs:
+    - validate
+    - verify
+    - check
+  entities:
+    - data
+    - quality
+    - schema
+  confidence_threshold: 0.75
+  match_rules:
+    - must contain 'validate' or 'check'
+    - should mention 'data' or 'quality'
+input_contract:
+  fields:
+    - name: data_file
+      type: file
+      description: Data file to validate (CSV, JSON, Parquet)
+      required: true
+    - name: schema_file
+      type: file
+      description: Validation schema (JSON Schema or custom)
+      required: true
+    - name: strict_mode
+      type: boolean
+      description: Enable strict validation rules
+      required: false
+output_contract:
+  fields:
+    - name: validation_report
+      type: file
+      description: Detailed validation report (HTML or JSON)
+      required: true
+    - name: quality_score
+      type: string
+      description: Overall data quality score 0-100
+      required: true
+    - name: issues_found
+      type: integer
+      description: Number of validation issues
+      required: true
+pipeline:
+  steps:
+    - step_id: step_1_load
+      worker:
+        worker_id: data_loader
+        version: 1.0.0
+        status: available
+      inputs:
+        - data_file
+      outputs:
+        - loaded_data
+      params:
+        infer_types: true
+    - step_id: step_2_schema_validation
+      worker:
+        worker_id: schema_validator
+        version: 1.0.0
+        status: available
+      inputs:
+        - loaded_data
+        - schema_file
+      outputs:
+        - schema_validation_result
+      params:
+        strict: false
+    - step_id: step_3_quality_check
+      worker:
+        worker_id: quality_checker
+        version: 1.0.0
+        status: available
+      inputs:
+        - loaded_data
+        - schema_validation_result
+        - strict_mode
+      outputs:
+        - quality_metrics
+      params:
+        check_nulls: true
+        check_duplicates: true
+        check_outliers: true
+    - step_id: step_4_report_generation
+      worker:
+        worker_id: report_generator
+        version: 1.0.0
+        status: available
+      inputs:
+        - schema_validation_result
+        - quality_metrics
+      outputs:
+        - validation_report
+        - quality_score
+        - issues_found
+      params:
+        format: html
+        include_samples: true
+approval:
+  required: false
+  conditions: []
+verification:
+  required: true
+  rules:
+    - name: report_generation
+      description: Verify report file was created
+      check: file_exists(validation_report)
+    - name: quality_score_valid
+      description: Verify quality score is in valid range
+      check: in_range(quality_score, 0, 100)
+failure_handling:
+  modes:
+    - error: invalid_format
+      recovery: fail
+      max_retries: 1
+    - error: schema_not_found
+      recovery: fail
+      max_retries: 1
+resources:
+  cpu_cores: 2
+  gpu_required: false
+  memory_mb: 2048
+  disk_mb: 5000
+metadata:
+  created_at: '2026-02-04T00:00:00Z'
+  author: concierge
+  tags:
+    - data-quality
+    - validation
+    - analytics

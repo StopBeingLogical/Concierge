@@ -1,0 +1,108 @@
+package_id: audio.normalize
+version: 1.0.0
+title: Audio Normalization
+description: Normalize audio volume levels to standard loudness. Reduces dynamic range and
+  ensures consistent playback levels across tracks.
+intent:
+  category: audio
+  verbs:
+    - normalize
+    - standardize
+    - level
+  entities:
+    - audio
+    - volume
+    - loudness
+  confidence_threshold: 0.8
+  match_rules:
+    - must contain 'normalize' or 'volume'
+    - must mention 'audio' context
+input_contract:
+  fields:
+    - name: audio_file
+      type: file
+      description: Input audio file (WAV, MP3, FLAC)
+      required: true
+    - name: target_loudness
+      type: string
+      description: Target loudness in LUFS (default -14)
+      required: false
+output_contract:
+  fields:
+    - name: normalized_audio
+      type: file
+      description: Normalized audio file
+      required: true
+    - name: metadata
+      type: string
+      description: JSON metadata about normalization
+      required: true
+pipeline:
+  steps:
+    - step_id: step_1_validate
+      worker:
+        worker_id: audio_validator
+        version: 1.0.0
+        status: available
+      inputs:
+        - audio_file
+      outputs:
+        - validation_result
+      params:
+        check_format: true
+        check_duration: true
+    - step_id: step_2_normalize
+      worker:
+        worker_id: audio_normalizer
+        version: 1.0.0
+        status: available
+      inputs:
+        - audio_file
+        - target_loudness
+        - validation_result
+      outputs:
+        - normalized_audio
+        - metadata
+      params:
+        algorithm: loudness_based
+        preserve_dynamics: true
+approval:
+  required: true
+  conditions:
+    - large_compute_operations
+    - audio_processing
+verification:
+  required: true
+  rules:
+    - name: output_format
+      description: Verify output audio format is valid
+      check: validate_audio_file(normalized_audio)
+    - name: loudness_check
+      description: Verify loudness is within range
+      check: loudness_in_range(metadata)
+failure_handling:
+  modes:
+    - error: format_unsupported
+      recovery: fail
+      max_retries: 1
+    - error: timeout
+      recovery: retry
+      max_retries: 3
+resources:
+  cpu_cores: 2
+  gpu_required: false
+  memory_mb: 1024
+  disk_mb: 5000
+metadata:
+  created_at: '2026-02-04T00:00:00Z'
+  author: concierge
+  version_history:
+    - version: 1.0.0
+      date: '2026-02-04'
+      changes: Initial release
+  dependencies:
+    - audio_processing_lib>=2.0
+  tags:
+    - audio
+    - production
+    - audio-processing

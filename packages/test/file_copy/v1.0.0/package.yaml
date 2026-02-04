@@ -1,0 +1,64 @@
+package_id: test.file_copy
+version: 1.0.0
+title: File Copy Test Package
+description: Simple test package that copies a file. Used for testing file handling
+  in the orchestration framework.
+intent:
+  category: test
+  verbs:
+    - copy
+    - duplicate
+  entities:
+    - file
+  confidence_threshold: 0.5
+  match_rules:
+    - must contain verb 'copy'
+input_contract:
+  fields:
+    - name: source_file
+      type: file
+      description: Source file to copy
+      required: true
+    - name: destination_path
+      type: string
+      description: Destination file path
+      required: true
+output_contract:
+  fields:
+    - name: copied_file
+      type: file
+      description: Path to copied file
+      required: true
+pipeline:
+  steps:
+    - step_id: step_1_copy
+      worker:
+        worker_id: file_copy_worker
+        version: 1.0.0
+        status: available
+      inputs:
+        - source_file
+        - destination_path
+      outputs:
+        - copied_file
+      params:
+        preserve_metadata: true
+approval:
+  required: false
+  conditions: []
+verification:
+  required: false
+  rules: []
+failure_handling:
+  modes: []
+resources:
+  cpu_cores: 1
+  gpu_required: false
+  memory_mb: 256
+  disk_mb: 500
+metadata:
+  created_at: '2026-02-04T00:00:00Z'
+  author: system
+  tags:
+    - test
+    - file-handling

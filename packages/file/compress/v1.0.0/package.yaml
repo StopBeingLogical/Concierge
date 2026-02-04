@@ -1,0 +1,103 @@
+package_id: file.compress
+version: 1.0.0
+title: File Compression
+description: Compress files using configurable algorithms. Supports ZIP, GZIP, and 7Z
+  formats. Maintains directory structure in archives.
+intent:
+  category: file
+  verbs:
+    - compress
+    - archive
+    - zip
+  entities:
+    - file
+    - directory
+    - archive
+  confidence_threshold: 0.7
+  match_rules:
+    - must contain 'compress' or 'archive'
+    - may mention 'size' or 'storage'
+input_contract:
+  fields:
+    - name: source_path
+      type: file
+      description: File or directory to compress
+      required: true
+    - name: output_format
+      type: string
+      description: Compression format (zip, gzip, 7z)
+      required: true
+    - name: compression_level
+      type: integer
+      description: Compression level 1-9 (default 6)
+      required: false
+output_contract:
+  fields:
+    - name: archive_file
+      type: file
+      description: Compressed archive file
+      required: true
+    - name: compression_stats
+      type: string
+      description: JSON with compression statistics
+      required: true
+pipeline:
+  steps:
+    - step_id: step_1_analyze
+      worker:
+        worker_id: file_analyzer
+        version: 1.0.0
+        status: available
+      inputs:
+        - source_path
+      outputs:
+        - size_analysis
+      params:
+        include_recursive: true
+    - step_id: step_2_compress
+      worker:
+        worker_id: compression_worker
+        version: 1.0.0
+        status: available
+      inputs:
+        - source_path
+        - output_format
+        - compression_level
+        - size_analysis
+      outputs:
+        - archive_file
+        - compression_stats
+      params:
+        verify_integrity: true
+approval:
+  required: false
+  conditions: []
+verification:
+  required: true
+  rules:
+    - name: archive_integrity
+      description: Verify archive can be extracted
+      check: test_archive_extraction(archive_file)
+    - name: content_preservation
+      description: Verify all files are in archive
+      check: verify_file_count(archive_file, size_analysis)
+failure_handling:
+  modes:
+    - error: disk_full
+      recovery: fail
+      max_retries: 1
+    - error: permission_denied
+      recovery: fail
+      max_retries: 1
+resources:
+  cpu_cores: 1
+  gpu_required: false
+  memory_mb: 512
+  disk_mb: 10000
+metadata:
+  created_at: '2026-02-04T00:00:00Z'
+  author: concierge
+  tags:
+    - file-operations
+    - utility
+    - compression
