@@ -9,6 +9,13 @@ from rich.console import Console
 from rich.table import Table
 
 from bit.workspace import Workspace, WorkspaceConfig
+from bit.modes import (
+    MODE_CATALOG,
+    SessionManager,
+    get_mode,
+    list_modes,
+    validate_mode,
+)
 
 app = typer.Typer(help="bit: Personal AI orchestration shell")
 console = Console()
@@ -146,6 +153,110 @@ def ws(
 
         except Exception as e:
             console.print(f"[red]✗[/red] {e}")
+            sys.exit(1)
+
+    else:
+        raise typer.BadParameter(f"Unknown action: {action}")
+
+
+@app.command()
+def mode(
+    action: str = typer.Argument(
+        ...,
+        help="Action: list, set, show"
+    ),
+    name: Optional[str] = typer.Option(
+        None,
+        "--name",
+        help="Mode name (for 'set' action)"
+    ),
+    path: Optional[str] = typer.Option(
+        None,
+        "--path",
+        help="Workspace path (required for set/show)"
+    )
+) -> None:
+    """Manage reasoning bias modes.
+
+    Actions:
+    - list: Show all available modes
+    - set: Set active mode for workspace
+    - show: Display current mode for workspace
+
+    Modes are reasoning bias hints that don't affect job schema.
+    """
+    if action == "list":
+        table = Table(title="Available Modes")
+        table.add_column("Name", style="cyan")
+        table.add_column("Description", style="white")
+        table.add_column("Bias", style="dim")
+
+        for mode_spec in list_modes():
+            table.add_row(mode_spec.name, mode_spec.description, mode_spec.bias)
+
+        console.print(table)
+        sys.exit(0)
+
+    elif action == "set":
+        if not path:
+            raise typer.BadParameter("--path required for 'set' action")
+        if not name:
+            raise typer.BadParameter("--name required for 'set' action")
+
+        workspace_path = Path(path).absolute()
+
+        try:
+            # Validate workspace exists
+            ws = Workspace(str(workspace_path))
+            ws.validate()
+
+            # Set mode
+            session = SessionManager(str(workspace_path))
+            state = session.set_mode(name)
+
+            mode_spec = get_mode(name)
+            console.print(f"[green]✓[/green] Mode set to [cyan]{name}[/cyan]")
+            console.print(f"[dim]Bias:[/dim] {mode_spec.bias}")
+            sys.exit(0)
+
+        except ValueError as e:
+            console.print(f"[red]✗[/red] {e}")
+            sys.exit(1)
+        except Exception as e:
+            console.print(f"[red]✗[/red] Error: {e}")
+            sys.exit(2)
+
+    elif action == "show":
+        if not path:
+            raise typer.BadParameter("--path required for 'show' action")
+
+        workspace_path = Path(path).absolute()
+
+        try:
+            # Validate workspace exists
+            ws = Workspace(str(workspace_path))
+            ws.validate()
+
+            # Get current mode
+            session = SessionManager(str(workspace_path))
+            state = session.load()
+            mode_spec = get_mode(state.active_mode)
+
+            table = Table(title="Current Mode")
+            table.add_column("Key", style="cyan")
+            table.add_column("Value", style="magenta")
+
+            table.add_row("Mode", state.active_mode)
+            table.add_row("Description", mode_spec.description if mode_spec else "Unknown")
+            table.add_row("Bias", mode_spec.bias if mode_spec else "Unknown")
+            if state.updated_at:
+                table.add_row("Updated", state.updated_at)
+
+            console.print(table)
+            sys.exit(0)
+
+        except Exception as e:
+            console.print(f"[red]✗[/red] Error: {e}")
             sys.exit(1)
 
     else:
