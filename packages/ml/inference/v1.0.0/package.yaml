@@ -1,0 +1,152 @@
+package_id: ml.inference
+version: 1.0.0
+title: ML Model Inference
+description: Run batch inference on trained ML models with preprocessing and postprocessing.
+
+intent:
+  category: ml
+  verbs:
+    - infer
+    - predict
+    - classify
+    - analyze
+    - detect
+  entities:
+    - model
+    - inference
+    - prediction
+    - classification
+  confidence_threshold: 0.7
+  match_rules:
+    - must mention 'model' or 'inference'
+    - verb bonus for prediction-related terms
+
+input_contract:
+  fields:
+    - name: model_path
+      type: file
+      description: Trained ML model (ONNX, TensorFlow, PyTorch)
+      required: true
+    - name: input_data
+      type: file
+      description: Input data file (CSV, JSON, Parquet)
+      required: true
+    - name: batch_size
+      type: string
+      description: Batch size for inference (default 32)
+      required: false
+
+output_contract:
+  fields:
+    - name: predictions
+      type: file
+      description: Output predictions (JSON or CSV)
+      required: true
+    - name: metrics
+      type: string
+      description: JSON with inference metrics
+      required: true
+
+pipeline:
+  steps:
+    - step_id: load_model
+      worker:
+        worker_id: ml_model_loader
+        version: 1.0.0
+        status: available
+      inputs:
+        - model_path
+      outputs:
+        - loaded_model
+      params:
+        optimize: true
+        validate: true
+
+    - step_id: preprocess_data
+      worker:
+        worker_id: data_preprocessor
+        version: 1.0.0
+        status: available
+      inputs:
+        - input_data
+      outputs:
+        - processed_data
+      params:
+        normalize: true
+        handle_missing: mean
+
+    - step_id: run_inference
+      worker:
+        worker_id: ml_inferencer
+        version: 1.0.0
+        status: available
+      inputs:
+        - loaded_model
+        - processed_data
+        - batch_size
+      outputs:
+        - raw_predictions
+      params:
+        use_gpu: true
+        precision: float32
+
+    - step_id: postprocess_results
+      worker:
+        worker_id: result_postprocessor
+        version: 1.0.0
+        status: available
+      inputs:
+        - raw_predictions
+      outputs:
+        - predictions
+        - metrics
+      params:
+        format_output: json
+
+approval:
+  required: true
+  conditions:
+    - ml_inference
+    - data_processing
+
+verification:
+  required: true
+  rules:
+    - name: predictions_created
+      description: Predictions file was created
+      check: file_exists(predictions)
+    - name: metrics_computed
+      description: Metrics were computed
+      check: file_contains(metrics)
+
+failure_handling:
+  modes:
+    - error: model_load_failed
+      recovery: fail
+      max_retries: 0
+    - error: out_of_memory
+      recovery: fail
+      max_retries: 0
+    - error: timeout
+      recovery: retry
+      max_retries: 1
+
+resources:
+  cpu_cores: 2
+  gpu_required: true
+  memory_mb: 8192
+  disk_mb: 5000
+
+metadata:
+  created_at: '2026-02-04T12:00:00Z'
+  author: concierge
+  version_history:
+    - version: 1.0.0
+      date: '2026-02-04'
+      changes: Initial release
+  tags:
+    - ml
+    - inference
+    - ai
+    - prediction
+    - production

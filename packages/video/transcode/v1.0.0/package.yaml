@@ -1,0 +1,123 @@
+package_id: video.transcode
+version: 1.0.0
+title: Video Transcoding
+description: Convert video between formats with quality control and compression options.
+
+intent:
+  category: video
+  verbs:
+    - transcode
+    - convert
+    - encode
+    - compress
+  entities:
+    - video
+    - format
+    - bitrate
+  confidence_threshold: 0.75
+  match_rules:
+    - must mention 'video' or 'transcode'
+    - optional target format specification
+
+input_contract:
+  fields:
+    - name: source_video
+      type: file
+      description: Input video file (MP4, MKV, AVI, MOV)
+      required: true
+    - name: target_format
+      type: string
+      description: Output format (mp4, webm, mkv)
+      required: false
+    - name: bitrate
+      type: string
+      description: Target bitrate (e.g. 5M, 10M)
+      required: false
+
+output_contract:
+  fields:
+    - name: output_video
+      type: file
+      description: Transcoded video file
+      required: true
+    - name: stats
+      type: string
+      description: JSON stats (duration, size, codec)
+      required: true
+
+pipeline:
+  steps:
+    - step_id: validate_input
+      worker:
+        worker_id: video_validator
+        version: 1.0.0
+        status: available
+      inputs:
+        - source_video
+      outputs:
+        - validation_result
+      params:
+        check_codec: true
+
+    - step_id: transcode_video
+      worker:
+        worker_id: video_transcoder
+        version: 1.0.0
+        status: available
+      inputs:
+        - source_video
+        - target_format
+        - bitrate
+      outputs:
+        - output_video
+        - stats
+      params:
+        hw_acceleration: true
+        preset: medium
+
+approval:
+  required: true
+  conditions:
+    - resource_intensive
+    - video_processing
+
+verification:
+  required: true
+  rules:
+    - name: output_exists
+      description: Output file exists and has size
+      check: file_exists(output_video)
+    - name: valid_format
+      description: Output is valid video file
+      check: validate_video(output_video)
+
+failure_handling:
+  modes:
+    - error: format_unsupported
+      recovery: fail
+      max_retries: 0
+    - error: timeout
+      recovery: retry
+      max_retries: 2
+    - error: disk_full
+      recovery: fail
+      max_retries: 0
+
+resources:
+  cpu_cores: 4
+  gpu_required: true
+  memory_mb: 4096
+  disk_mb: 20000
+
+metadata:
+  created_at: '2026-02-04T12:00:00Z'
+  author: concierge
+  version_history:
+    - version: 1.0.0
+      date: '2026-02-04'
+      changes: Initial release
+  tags:
+    - video
+    - media
+    - transcoding
+    - production

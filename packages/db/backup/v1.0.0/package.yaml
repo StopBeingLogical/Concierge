@@ -1,0 +1,172 @@
+package_id: db.backup
+version: 1.0.0
+title: Database Backup
+description: Create compressed and verified database backups with integrity checking.
+
+intent:
+  category: db
+  verbs:
+    - backup
+    - export
+    - dump
+    - snapshot
+    - archive
+  entities:
+    - database
+    - backup
+    - snapshot
+    - export
+  confidence_threshold: 0.75
+  match_rules:
+    - must mention 'database' or 'backup'
+    - verb bonus for backup-related terms
+
+input_contract:
+  fields:
+    - name: database_connection
+      type: string
+      description: Database connection string (host:port/dbname)
+      required: true
+    - name: backup_format
+      type: string
+      description: Backup format (dump, sql, binary)
+      required: false
+    - name: compression
+      type: string
+      description: Compression type (none, gzip, zstd)
+      required: false
+    - name: output_path
+      type: file
+      description: Output directory for backup
+      required: true
+
+output_contract:
+  fields:
+    - name: backup_file
+      type: file
+      description: Path to backup file
+      required: true
+    - name: backup_manifest
+      type: string
+      description: JSON manifest with backup details
+      required: true
+
+pipeline:
+  steps:
+    - step_id: validate_connection
+      worker:
+        worker_id: db_connection_validator
+        version: 1.0.0
+        status: available
+      inputs:
+        - database_connection
+      outputs:
+        - connection_valid
+      params:
+        test_query: SELECT 1
+        check_permissions: true
+
+    - step_id: prepare_backup
+      worker:
+        worker_id: db_backup_preparer
+        version: 1.0.0
+        status: available
+      inputs:
+        - database_connection
+      outputs:
+        - backup_plan
+      params:
+        estimate_size: true
+        check_space: true
+
+    - step_id: execute_backup
+      worker:
+        worker_id: db_backup_executor
+        version: 1.0.0
+        status: available
+      inputs:
+        - database_connection
+        - backup_format
+        - output_path
+      outputs:
+        - backup_file
+      params:
+        parallel_export: true
+        chunk_size_mb: 100
+
+    - step_id: compress_backup
+      worker:
+        worker_id: compressor
+        version: 1.0.0
+        status: available
+      inputs:
+        - backup_file
+        - compression
+      outputs:
+        - compressed_backup
+      params:
+        compression_level: 6
+
+    - step_id: verify_backup
+      worker:
+        worker_id: backup_verifier
+        version: 1.0.0
+        status: available
+      inputs:
+        - compressed_backup
+      outputs:
+        - backup_manifest
+      params:
+        compute_checksum: true
+        validate_structure: true
+
+approval:
+  required: true
+  conditions:
+    - data_protection
+    - backup_operation
+
+verification:
+  required: true
+  rules:
+    - name: backup_created
+      description: Backup file was created
+      check: file_exists(backup_file)
+    - name: backup_valid
+      description: Backup has valid structure
+      check: validate_backup_structure(backup_manifest)
+
+failure_handling:
+  modes:
+    - error: connection_failed
+      recovery: fail
+      max_retries: 0
+    - error: disk_full
+      recovery: fail
+      max_retries: 0
+    - error: permission_denied
+      recovery: fail
+      max_retries: 0
+    - error: timeout
+      recovery: retry
+      max_retries: 1
+
+resources:
+  cpu_cores: 2
+  gpu_required: false
+  memory_mb: 2048
+  disk_mb: 50000
+
+metadata:
+  created_at: '2026-02-04T12:00:00Z'
+  author: concierge
+  version_history:
+    - version: 1.0.0
+      date: '2026-02-04'
+      changes: Initial release
+  tags:
+    - database
+    - backup
+    - data-protection
+    - disaster-recovery
+    - production
