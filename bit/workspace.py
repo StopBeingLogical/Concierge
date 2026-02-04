@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 import hashlib
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -59,7 +59,7 @@ class Workspace:
         # Create config
         config = WorkspaceConfig(
             workspace_path=str(self.path.absolute()),
-            created_at=datetime.utcnow().isoformat() + "Z"
+            created_at=datetime.now(UTC).isoformat().replace('+00:00', 'Z')
         )
 
         # Write config

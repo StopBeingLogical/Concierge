@@ -1,6 +1,6 @@
 """Event system for pipeline execution tracking."""
 
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Any
@@ -189,7 +189,7 @@ class RunRecord(BaseModel):
         """
         import uuid
 
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
         return RunRecord(
             run_id=f"run-{uuid.uuid4()}",
             created_at=now,

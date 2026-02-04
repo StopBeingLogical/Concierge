@@ -1,6 +1,6 @@
 """Approval and authorization system."""
 
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
@@ -47,7 +47,7 @@ class Approval(BaseModel):
         Returns:
             Approval: Granted approval record
         """
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
         return Approval(
             plan_id=plan_id,
             decision=ApprovalDecision.GRANTED,
@@ -69,7 +69,7 @@ class Approval(BaseModel):
         Returns:
             Approval: Denied approval record
         """
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
         return Approval(
             plan_id=plan_id,
             decision=ApprovalDecision.DENIED,
@@ -89,7 +89,7 @@ class Approval(BaseModel):
         Returns:
             Approval: Pending approval request
         """
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
         return Approval(
             plan_id=plan_id,
             decision=ApprovalDecision.GRANTED,  # Default to granted for pending

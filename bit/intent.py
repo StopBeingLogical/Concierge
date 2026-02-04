@@ -3,7 +3,7 @@
 import json
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Optional
 
@@ -115,7 +115,7 @@ class IntentSynthesizer:
             distilled_intent=distilled,
             success_criteria=success,
             constraints=constraints,
-            created_at=datetime.utcnow().isoformat() + "Z",
+            created_at=datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
             intent_hash=intent_hash,
         )
 

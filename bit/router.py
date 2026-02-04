@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Optional, Any
 import uuid
+from datetime import datetime, UTC
 
 from bit.plan import ExecutionPlan
 from bit.events import Event, EventType, EventLog, RunRecord
@@ -199,5 +200,4 @@ class Router:
         Returns:
             str: Current timestamp
         """
-        from datetime import datetime
-        return datetime.utcnow().isoformat() + "Z"
+        return datetime.now(UTC).isoformat().replace('+00:00', 'Z')

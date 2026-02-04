@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -258,7 +258,7 @@ class JobManager:
         # Create job
         job = Job(
             job_id=job_id,
-            created_at=datetime.utcnow().isoformat() + "Z",
+            created_at=datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
             intent_ref=intent.intent_id,
             intent_hash=intent.intent_hash,
             status=JobStatus.DRAFT,

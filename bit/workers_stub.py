@@ -1,7 +1,7 @@
 """Stub worker implementations for testing."""
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +42,7 @@ class EchoWorker(WorkerStub):
         add_timestamp = params.get("timestamp", True)
 
         if add_timestamp:
-            now = datetime.utcnow().isoformat() + "Z"
+            now = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
             output = f"{message} [echoed at {now}]"
         else:
             output = f"{message} [echoed]"

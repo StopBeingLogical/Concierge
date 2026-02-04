@@ -2,7 +2,7 @@
 
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Tuple
 
 from bit.job import JobSpec, Job
@@ -130,7 +130,7 @@ class Planner:
         # Create execution plan
         plan = ExecutionPlan(
             plan_id=plan_id,
-            created_at=datetime.utcnow().isoformat() + "Z",
+            created_at=datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
             job_id=job.job_id,
             package_id=package.package_id,
             package_version=package.version,

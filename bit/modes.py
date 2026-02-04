@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, UTC
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,7 +28,7 @@ class SessionState(BaseModel):
         """Update timestamp."""
         return SessionState(
             active_mode=self.active_mode,
-            updated_at=datetime.utcnow().isoformat() + "Z"
+            updated_at=datetime.now(UTC).isoformat().replace('+00:00', 'Z')
         )
 
 
